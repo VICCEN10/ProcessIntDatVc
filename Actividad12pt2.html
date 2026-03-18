@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reconocimiento de números</title>
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    canvas {
+      border: 2px solid black;
+      background: black;
+      cursor: crosshair;
+      image-rendering: pixelated;
+      width: 280px;
+      height: 280px;
+    }
+
+    button {
+      margin: 10px;
+      padding: 10px 15px;
+      font-size: 16px;
+    }
+
+    #resultado {
+      margin-top: 20px;
+      font-size: 24px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Escribe un número</h1>
+  <canvas id="canvas" width="28" height="28"></canvas>
+  <br>
+  <button onclick="limpiarCanvas()">Limpiar</button>
+  <button onclick="predecir()">Predecir</button>
+
+  <div id="resultado">Resultado: </div>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    let dibujando = false;
+
+    function inicializarCanvas() {
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    inicializarCanvas();
+
+    function getMousePos(canvas, evt) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: Math.floor((evt.clientX - rect.left) * canvas.width / rect.width),
+        y: Math.floor((evt.clientY - rect.top) * canvas.height / rect.height)
+      };
+    }
+
+    canvas.addEventListener("mousedown", () => {
+      dibujando = true;
+    });
+
+    canvas.addEventListener("mouseup", () => {
+      dibujando = false;
+      ctx.beginPath();
+    });
+
+    canvas.addEventListener("mouseleave", () => {
+      dibujando = false;
+      ctx.beginPath();
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (!dibujando) return;
+
+      const pos = getMousePos(canvas, e);
+
+      ctx.fillStyle = "white";
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    function limpiarCanvas() {
+      inicializarCanvas();
+      document.getElementById("resultado").innerHTML = "Resultado: ";
+    }
+
+    function predecir() {
+      let pixels = [];
+
+      for (let y = 0; y < 28; y++) {
+        for (let x = 0; x < 28; x++) {
+          let imgData = ctx.getImageData(x, y, 1, 1);
+          let data = imgData.data;
+
+          // Usar canal rojo, no alpha
+          let color = data[0] / 255.0;
+          color = parseFloat(color.toFixed(2));
+
+          pixels.push(color);
+        }
+      }
+
+      $.post("http://localhost:8000", { pixeles: pixels.join(",") }, function(response) {
+        console.log("Resultado:", response);
+        document.getElementById("resultado").innerHTML = "Resultado: " + response;
+      });
+    }
+  </script>
+
+</body>
+</html>
